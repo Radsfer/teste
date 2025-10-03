@@ -1,7 +1,7 @@
 #ifndef IOMANAGER_H
 #define IOMANAGER_H
 
-#include "shared_structs.h"
+#include "shared_structs.hpp"
 #include <vector>
 #include <mutex>
 #include <thread>
