@@ -17,6 +17,9 @@ public:
     // Métodos unificados agora recebem o PCB para as métricas
     uint32_t read(uint32_t address, PCB& process);
     void write(uint32_t address, uint32_t data, PCB& process);
+    
+    // Função auxiliar para o write-back da cache
+    void writeToFile(uint32_t address, uint32_t data);
 
 private:
     std::unique_ptr<MAIN_MEMORY> mainMemory;
@@ -24,7 +27,6 @@ private:
     std::unique_ptr<Cache> L1_cache; // Adiciona a Cache L1
 
     size_t mainMemoryLimit;
-    int timestamp = 0; // Para a política de substituição da cache
 };
 
 #endif // MEMORY_MANAGER_HPP
