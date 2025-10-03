@@ -1,7 +1,7 @@
-#ifndef IOMANAGER_H
-#define IOMANAGER_H
+#ifndef IOMANAGER_HPP
+#define IOMANAGER_HPP
 
-#include "shared_structs.hpp"
+#include "../cpu/PCB.hpp"
 #include <vector>
 #include <mutex>
 #include <thread>

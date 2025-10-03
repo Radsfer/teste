@@ -1,10 +1,9 @@
 #include "pcb_loader.hpp"
 #include <fstream>
-
 #include "CONTROL_UNIT.hpp"
 #include "../memory/MemoryManager.hpp"
 #include "PCB.hpp"
-#include "../IO/shared_structs.h"
+#include "../IO/IOManager.hpp"
 
 #include <bitset>
 #include <cmath>
@@ -31,8 +30,10 @@ static int32_t signExtend16(uint16_t v) {
 }
 
 static std::string regIndexToBitString(uint32_t idx) {
-    std::string s;
-    for (int i = 4; i >= 0; --i) s.push_back(((idx >> i) & 1) ? '1' : '0');
+    std::string s(5, '0');
+    for (int i = 4; i >= 0; --i) {
+        s[4 - i] = ((idx >> i) & 1) ? '1' : '0';
+    }
     return s;
 }
 
@@ -66,7 +67,7 @@ string Control_Unit::Get_source_Register(const uint32_t instruction) {
     return regIndexToBitString(rs);
 }
 
-string Control_Unit::Identificacao_instrucao(uint32_t instruction, REGISTER_BANK &registers) {
+string Control_Unit::Identificacao_instrucao(uint32_t instruction, hw::BANK &registers) {
     uint32_t opcode = (instruction >> 26) & 0x3Fu;
     std::string opcode_bin = toBinStr(opcode, 6);
 
@@ -101,7 +102,7 @@ void Control_Unit::Fetch(ControlContext &context) {
     context.registers.pc.write(context.registers.pc.value + 1);
 }
 
-void Control_Unit::Decode(REGISTER_BANK &registers, Instruction_Data &data) {
+void Control_Unit::Decode(hw::REGISTER_BANK &registers, Instruction_Data &data) {
     uint32_t instruction = registers.ir.read();
     data.rawInstruction = instruction;
     data.op = Identificacao_instrucao(instruction, registers);
@@ -141,7 +142,7 @@ void Control_Unit::Decode(REGISTER_BANK &registers, Instruction_Data &data) {
     }
 }
 
-void Control_Unit::Execute_Aritmetic_Operation(REGISTER_BANK &registers, Instruction_Data &data) {
+void Control_Unit::Execute_Aritmetic_Operation(hw::BANK &registers, Instruction_Data &data) {
     string name_rs = this->map.getRegisterName(binaryStringToUint(data.source_register));
     string name_rt = this->map.getRegisterName(binaryStringToUint(data.target_register));
     string name_rd = this->map.getRegisterName(binaryStringToUint(data.destination_register));
@@ -149,12 +150,12 @@ void Control_Unit::Execute_Aritmetic_Operation(REGISTER_BANK &registers, Instruc
     ALU alu;
     alu.A = registers.readRegister(name_rs);
     alu.B = registers.readRegister(name_rt);
-    
+
     if (data.op == "ADD") alu.op = ADD;
     else if (data.op == "SUB") alu.op = SUB;
     else if (data.op == "MULT") alu.op = MUL;
     else if (data.op == "DIV") alu.op = DIV;
-    
+
     alu.calculate();
     registers.writeRegister(name_rd, alu.result);
 }
@@ -177,7 +178,7 @@ void Control_Unit::Execute_Operation(Instruction_Data &data, ControlContext &con
     }
 }
 
-void Control_Unit::Execute_Loop_Operation(REGISTER_BANK &registers, Instruction_Data &data,
+void Control_Unit::Execute_Loop_Operation(hw::BANK &registers, Instruction_Data &data,
                                           int &counter, int &counterForEnd, bool &programEnd,
                                           MemoryManager &memManager, PCB &process) {
     string name_rs = this->map.getRegisterName(binaryStringToUint(data.source_register));
@@ -188,13 +189,13 @@ void Control_Unit::Execute_Loop_Operation(REGISTER_BANK &registers, Instruction_
     alu.B = registers.readRegister(name_rt);
 
     bool jump = false;
-    if (data.op == "BEQ") { alu.op = BEQ; alu.calculate(); if(alu.result == 1) jump = true; }
-    else if (data.op == "BNE") { alu.op = BNE; alu.calculate(); if(alu.result == 1) jump = true; }
+    if (data.op == "BEQ") { alu.op = BEQ; alu.calculate(); if (alu.result == 1) jump = true; }
+    else if (data.op == "BNE") { alu.op = BNE; alu.calculate(); if (alu.result == 1) jump = true; }
     else if (data.op == "J") { jump = true; }
-    else if (data.op == "BLT") { alu.op = BLT; alu.calculate(); if(alu.result == 1) jump = true; }
-    else if (data.op == "BGT") { alu.op = BGT; alu.calculate(); if(alu.result == 1) jump = true; }
-    
-    if(jump) {
+    else if (data.op == "BLT") { alu.op = BLT; alu.calculate(); if (alu.result == 1) jump = true; }
+    else if (data.op == "BGT") { alu.op = BGT; alu.calculate(); if (alu.result == 1) jump = true; }
+
+    if (jump) {
         uint32_t addr = binaryStringToUint(data.addressRAMResult);
         registers.pc.write(addr);
         registers.ir.write(memManager.read(registers.pc.read(), process));

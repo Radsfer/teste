@@ -16,7 +16,7 @@ using std::vector;
 using std::uint32_t;
 using std::unique_ptr;
 
-class REGISTER_BANK;
+class hw::REGISTER_BANK;
 class MemoryManager;
 struct PCB;
 struct IORequest;
@@ -34,7 +34,7 @@ struct Instruction_Data {
 };
 
 struct ControlContext {
-    REGISTER_BANK &registers;
+    hw::REGISTER_BANK &registers;
     MemoryManager &memManager;
     vector<unique_ptr<IORequest>> &ioRequests;
     bool &printLock;
@@ -62,13 +62,13 @@ struct Control_Unit {
     static string Get_target_Register(uint32_t instruction);
     static string Get_source_Register(uint32_t instruction);
 
-    string Identificacao_instrucao(uint32_t instruction, REGISTER_BANK &registers);
+    string Identificacao_instrucao(uint32_t instruction, hw::REGISTER_BANK &registers);
 
     void Fetch(ControlContext &context);
-    void Decode(REGISTER_BANK &registers, Instruction_Data &data);
-    void Execute_Aritmetic_Operation(REGISTER_BANK &registers, Instruction_Data &d);
+    void Decode(hw::REGISTER_BANK &registers, Instruction_Data &data);
+    void Execute_Aritmetic_Operation(hw::REGISTER_BANK &registers, Instruction_Data &d);
     void Execute_Operation(Instruction_Data &data, ControlContext &context);
-    void Execute_Loop_Operation(REGISTER_BANK &registers, Instruction_Data &d,
+    void Execute_Loop_Operation(hw::REGISTER_BANK &registers, Instruction_Data &d,
                                 int &counter, int &counterForEnd, bool &endProgram,
                                 MemoryManager &memManager, PCB &process);
     void Execute(Instruction_Data &data, ControlContext &context);
