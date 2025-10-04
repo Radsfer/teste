@@ -4,7 +4,7 @@
 */
 #include "pcb_loader.hpp"
 #include <fstream>
-#include <../parser_json/parser_json.hpp>
+#include "../parser_json/parser_json.hpp"
 
 using json = nlohmann::json;
 
