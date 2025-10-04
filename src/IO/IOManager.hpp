@@ -7,6 +7,15 @@
 #include <thread>
 #include <memory>
 #include <fstream>
+#include <chrono>
+
+// Definição completa da estrutura IORequest
+struct IORequest {
+    std::string operation;
+    std::string msg;
+    PCB* process = nullptr; // Ponteiro para o PCB associado
+    std::chrono::milliseconds cost_cycles;
+};
 
 class IOManager {
 public:
@@ -41,4 +50,4 @@ private:
     std::ofstream outputFile;
 };
 
-#endif // IOMANAGER_H
+#endif // IOMANAGER_HPP

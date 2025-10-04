@@ -37,7 +37,7 @@ struct PCB {
     State state = State::Ready;
 
     // Banco de registradores associado (definido fora, agregado aqui)
-    // REGISTER_BANK regBank;
+    hw::REGISTER_BANK regBank;
 
     // Contadores de acesso à memória
     std::atomic<uint64_t> primary_mem_accesses{0};
