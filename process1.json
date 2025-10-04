@@ -1,0 +1,10 @@
+{
+  "pid": 1,
+  "name": "processo_teste_1",
+  "quantum": 100,
+  "priority": 1,
+  "mem_weights": {
+    "primary": 5,
+    "secondary": 20
+  }
+}

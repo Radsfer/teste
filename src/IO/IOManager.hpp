@@ -50,4 +50,4 @@ private:
     std::ofstream outputFile;
 };
 
-#endif // IOMANAGER_HPP
+#endif // IOMANAGER_HPP 

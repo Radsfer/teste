@@ -36,18 +36,20 @@ int main() {
     IOManager ioManager;
 
     // 2. Carregamento dos Processos
-    std::vector<std::unique_ptr<PCB>> process_list; // Agora usamos unique_ptr
+    std::vector<std::unique_ptr<PCB>> process_list;
     std::deque<PCB*> ready_queue;
     std::vector<PCB*> blocked_list;
 
     // Carrega um processo a partir de um arquivo JSON
     auto p1 = std::make_unique<PCB>();
+    // CORREÇÃO: Caminho simplificado
     if (load_pcb_from_json("process1.json", *p1)) {
-        std::cout << "Carregando programa 'src/tasks/tasks.json' para o processo " << p1->pid << "...\n";
-        loadJsonProgram("src/tasks/tasks.json", memManager, *p1, 0);
+        // CORREÇÃO: Caminho simplificado
+        std::cout << "Carregando programa 'tasks.json' para o processo " << p1->pid << "...\n";
+        loadJsonProgram("tasks.json", memManager, *p1, 0);
         process_list.push_back(std::move(p1));
     } else {
-        std::cerr << "Erro ao carregar 'process1.json'.\n";
+        std::cerr << "Erro ao carregar 'process1.json'. Certifique-se de que o arquivo está na pasta raiz do projeto.\n";
         return 1;
     }
 

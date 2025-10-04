@@ -34,12 +34,23 @@ set(SIMULATOR_SOURCES
 add_executable(simulador ${SIMULATOR_SOURCES})
 target_link_libraries(simulador PRIVATE pthread)
 
+# --- COPIAR ARQUIVOS DE DADOS PARA O DIRETÓRIO DE BUILD ---
+# Esta seção garante que os arquivos .json estejam junto do executável
+add_custom_command(TARGET simulador POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/process1.json
+        ${CMAKE_BINARY_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/src/tasks/tasks.json
+        ${CMAKE_BINARY_DIR}
+    COMMENT "Copiando arquivos de dados necessários para a execução"
+)
+
 # --- ALVOS DE TESTE (CADA UM COM SUAS DEPENDÊNCIAS) ---
+# (O restante do arquivo continua igual...)
 add_executable(test_hash src/test/test_hash_register.cpp)
 add_executable(test_bank src/test/test_register_bank.cpp src/cpu/REGISTER_BANK.cpp)
 add_executable(test_ula src/test/teste_alu.cpp src/cpu/ULA.cpp)
-
-# CORREÇÃO: Adicionadas todas as dependências para o teste de métricas
 add_executable(test_metrics 
     src/test/test_cpu_metrics.cpp 
     src/cpu/CONTROL_UNIT.cpp 
@@ -56,18 +67,13 @@ add_executable(test_metrics
 )
 target_link_libraries(test_metrics PRIVATE pthread)
 
-
 # --- ALVOS PERSONALIZADOS (IMITANDO O MAKEFILE) ---
-
-# Comando 'run': Executa o simulador principal
 add_custom_target(run
     COMMAND ${CMAKE_BINARY_DIR}/simulador
     DEPENDS simulador
     COMMENT "🚀 Executando o simulador..."
     VERBATIM
 )
-
-# Comando 'test-all': Executa todos os testes em sequência
 add_custom_target(test-all
     DEPENDS test_hash test_bank test_ula test_metrics
     COMMAND ${CMAKE_BINARY_DIR}/test_hash
@@ -77,8 +83,6 @@ add_custom_target(test-all
     COMMENT "🧪 Executando todos os testes..."
     VERBATIM
 )
-
-# Comando 'check': Verificação rápida de todos os componentes
 add_custom_target(check
     DEPENDS simulador test_hash test_bank test_ula test_metrics
     COMMAND bash -c "'${CMAKE_BINARY_DIR}/simulador > /dev/null 2>&1 && echo \"  Simulador principal: ✅ PASSOU\" || echo \"  Simulador principal: ❌ FALHOU\"'"
@@ -89,8 +93,6 @@ add_custom_target(check
     COMMENT "🎯 Executando verificações rápidas..."
     VERBATIM
 )
-
-# Comando 'ajuda': Mostra uma mensagem de ajuda útil
 add_custom_target(ajuda
     COMMAND ${CMAKE_COMMAND} -E echo "📋 SO-SimuladorVonNeumann - Comandos Disponíveis:"
     COMMAND ${CMAKE_COMMAND} -E echo ""
