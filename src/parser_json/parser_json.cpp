@@ -1,5 +1,6 @@
 #include "parser_json.hpp"
-#include "MainMemory.hpp"
+#include "../memory/MemoryManager.hpp" // Alterado de MainMemory.hpp
+#include "../cpu/PCB.hpp"              // Incluído para a função write
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
@@ -10,16 +11,12 @@
 using namespace std;
 using nlohmann::json;
 
-// ======= Tabelas =======
+// ======= Tabelas (sem alterações) =======
 const unordered_map<string, int> instructionMap = {
-    // R-type (opcode 0)
     {"add",0}, {"sub",0}, {"and",0}, {"or",0}, {"mult",0}, {"div",0}, {"sll",0}, {"srl",0}, {"jr",0},
-    // I-type
     {"addi",0b001000}, {"andi",0b001100}, {"ori",0b001101}, {"slti",0b001010},
     {"lw",0b100011}, {"sw",0b101011}, {"beq",0b000100}, {"bne",0b000101},
-    // extras do seu schema
     {"bgt",0b000111}, {"blt",0b001001}, {"li",0b001111}, {"print",0b111110}, {"end",0b111111},
-    // J-type
     {"j",0b000010}, {"jal",0b000011}
 };
 
@@ -36,11 +33,10 @@ const unordered_map<string, int> registerMap = {
     {"$t8",24},{"$t9",25},{"$k0",26},{"$k1",27},{"$gp",28},{"$sp",29},{"$fp",30},{"$ra",31}
 };
 
-// Mapas globais (dados e labels)
-static unordered_map<string, int> dataMap;   // label -> endereço (byte)
-static unordered_map<string, int> labelMap;  // label -> índice de instrução
+static unordered_map<string, int> dataMap;
+static unordered_map<string, int> labelMap;
 
-// ======= Utils =======
+// ======= Utils e Helpers (sem alterações) =======
 string toLower(string s){
     transform(s.begin(), s.end(), s.begin(), [](unsigned char c){return std::tolower(c);});
     return s;
@@ -67,7 +63,6 @@ pair<int16_t,int> parseOffsetBase(const string &addrExpr){
     return {off, it->second};
 }
 
-// ======= Helpers =======
 int getRegisterCode(const string &reg){
     auto it = registerMap.find(toLower(reg));
     if (it!=registerMap.end()) return it->second;
@@ -112,7 +107,7 @@ uint32_t buildBinaryInstruction(int opcode, int rs, int rt, int rd, int shamt, i
     }
 }
 
-// ======= Encoders =======
+// ======= Encoders (sem alterações) =======
 uint32_t encodeRType(const json &j){
     const string mnem = j.at("instruction").get<string>();
     int opcode = getOpcode(mnem);
@@ -138,7 +133,7 @@ uint32_t encodeIType(const json &j, int pcIdx){
     int opcode  = getOpcode(mnem);
     int rs=0, rt=0; int16_t imm=0;
 
-    if (mnem=="li"){ // pseudo
+    if (mnem=="li"){
         opcode = getOpcode("addi");
         rt = getRegisterCode(j.at("rt").get<string>());
         rs = getRegisterCode("$zero");
@@ -154,7 +149,7 @@ uint32_t encodeIType(const json &j, int pcIdx){
         } else if (j.contains("baseReg")){
             rs = getRegisterCode(j.at("baseReg").get<string>());
             imm = j.contains("offset") ? parseImmediate(j.at("offset")) : 0;
-        } else if (j.contains("base")){ // label de dados absoluto
+        } else if (j.contains("base")){
             rs = getRegisterCode("$zero");
             const string lbl = j.at("base").get<string>();
             if (!dataMap.count(lbl)) throw runtime_error("Label de dados desconhecida: " + lbl);
@@ -180,7 +175,6 @@ uint32_t encodeIType(const json &j, int pcIdx){
         return buildBinaryInstruction(opcode, rs, rt, 0, 0, 0, imm, 0);
     }
 
-    // addi/andi/ori/slti
     rt  = getRegisterCode(j.at("rt").get<string>());
     rs  = getRegisterCode(j.at("rs").get<string>());
     imm = parseImmediate(j.at("immediate"));
@@ -194,7 +188,7 @@ uint32_t encodeJType(const json &j){
     if (j.contains("label")){
         const string lbl = j.at("label").get<string>();
         if (!labelMap.count(lbl)) throw runtime_error("Label desconhecida (J): " + lbl);
-        int addr = labelMap[lbl] & 0x03FFFFFF; // simplificado: índice
+        int addr = labelMap[lbl] & 0x03FFFFFF;
         return buildBinaryInstruction(opcode, 0,0,0,0,0, 0, addr);
     }
     if (j.contains("address")){
@@ -210,10 +204,9 @@ uint32_t encodeJType(const json &j){
     throw runtime_error("J-type requer 'label' ou 'address'");
 }
 
-// ======= Parser de instrução =======
 uint32_t parseInstruction(const json &instrJson, int currentInstrIndex){
     const string mnem = instrJson.at("instruction").get<string>();
-    if (mnem=="end" || mnem=="print")  // custom simples
+    if (mnem=="end" || mnem=="print")
         return static_cast<uint32_t>(getOpcode(mnem)) << 26;
 
     if (functMap.count(mnem))              return encodeRType(instrJson);
@@ -221,11 +214,10 @@ uint32_t parseInstruction(const json &instrJson, int currentInstrIndex){
     return encodeIType(instrJson, currentInstrIndex);
 }
 
-// ======= Seções =======
-int parseData(const json &dataJson, MainMemory &ram, int startAddr){
+// ======= Seções (Alteradas para usar MemoryManager) =======
+int parseData(const json &dataJson, MemoryManager &memManager, PCB& pcb, int startAddr){
     int addr = startAddr;
 
-    // Formato A: objeto {"x":10,"y":[1,2]}
     if (dataJson.is_object()){
         for (auto it = dataJson.begin(); it != dataJson.end(); ++it){
             const string key = it.key();
@@ -235,25 +227,27 @@ int parseData(const json &dataJson, MainMemory &ram, int startAddr){
                 for (auto &e : val){
                     int w = e.is_string()? static_cast<int>(std::stoul(e.get<string>(),nullptr,0))
                                           : e.get<int>();
-                    ram.WriteMem(addr, w); addr += 4;
+                    memManager.write(addr, w, pcb); // Alterado aqui
+                    addr += 4;
                 }
             } else {
                 int w = val.is_string()? static_cast<int>(std::stoul(val.get<string>(),nullptr,0))
                                         : val.get<int>();
-                ram.WriteMem(addr, w); addr += 4;
+                memManager.write(addr, w, pcb); // Alterado aqui
+                addr += 4;
             }
         }
         return addr;
     }
 
-    // Formato B: array de objetos [{label,type,value}]
     if (dataJson.is_array()){
         vector<uint8_t> bytes;
         auto flushBytes = [&](){
             for (size_t i=0;i<bytes.size(); i+=4){
                 uint32_t w=0;
                 for (size_t j=0;j<4 && i+j<bytes.size(); ++j) w = (w<<8) | bytes[i+j];
-                ram.WriteMem(addr, static_cast<int>(w)); addr += 4;
+                memManager.write(addr, w, pcb); // Alterado aqui
+                addr += 4;
             }
             bytes.clear();
         };
@@ -268,12 +262,14 @@ int parseData(const json &dataJson, MainMemory &ram, int startAddr){
                     for (auto &v : item["value"]){
                         int w = v.is_string()? static_cast<int>(std::stoul(v.get<string>(),nullptr,0))
                                              : v.get<int>();
-                        ram.WriteMem(addr, w); addr += 4;
+                        memManager.write(addr, w, pcb); // Alterado aqui
+                        addr += 4;
                     }
                 } else {
                     int w = item["value"].is_string()? static_cast<int>(std::stoul(item["value"].get<string>(),nullptr,0))
                                                       : item["value"].get<int>();
-                    ram.WriteMem(addr, w); addr += 4;
+                    memManager.write(addr, w, pcb); // Alterado aqui
+                    addr += 4;
                 }
             } else if (type=="byte"){
                 if (item["value"].is_array()){
@@ -294,47 +290,32 @@ int parseData(const json &dataJson, MainMemory &ram, int startAddr){
     return addr;
 }
 
-int parseProgram(const json &programJson, MainMemory &ram, int startAddr) {
+int parseProgram(const json &programJson, MemoryManager &memManager, PCB& pcb, int startAddr) {
     if (!programJson.is_array()) {
         return startAddr;
     }
 
-    // 1) Mapear todas as labels para seus endereços de instrução.
-    //    Este loop percorre o programa para encontrar todas as labels antes de
-    //    começar a traduzir as instruções.
     int instruction_address_counter = 0;
     for (const auto &node : programJson) {
-        // Se o objeto JSON atual tiver uma chave "label"...
         if (node.contains("label")) {
-            // ...salvamos o nome da label e o endereço da instrução atual no mapa.
             labelMap[node["label"].get<string>()] = instruction_address_counter;
         }
-
-        // O contador de endereço só avança se houver de fato uma instrução na linha.
-        // Isso garante que os endereços das labels fiquem corretos.
         if (node.contains("instruction")) {
             instruction_address_counter++;
         }
     }
 
-
-    // 2) Codificar e escrever as instruções na memória.
-    //    Este loop permanece como você fez, pois a lógica está correta.
     int current_mem_addr = startAddr;
     int current_instruction_addr = 0;
     for (const auto &node : programJson) {
-        // Pula linhas que são apenas labels (se houver alguma)
         if (!node.contains("instruction")) {
             continue;
         }
         
-        // Traduz a instrução para binário
         uint32_t binary_instruction = parseInstruction(node, current_instruction_addr);
         
-        // Escreve a instrução na memória
-        ram.WriteMem(current_mem_addr, static_cast<int>(binary_instruction));
+        memManager.write(current_mem_addr, binary_instruction, pcb); // Alterado aqui
         
-        // Avança para o próximo endereço de memória (palavra de 4 bytes)
         current_mem_addr += 4;
         current_instruction_addr++;
     }
@@ -342,20 +323,20 @@ int parseProgram(const json &programJson, MainMemory &ram, int startAddr) {
     return current_mem_addr;
 }
 
-// ======= Loader =======
+// ======= Loader (Alterado para usar MemoryManager) =======
 static json readJsonFile(const string &filename){
     ifstream f(filename);
     if (!f) throw runtime_error("Não foi possível abrir: " + filename);
     json j; f >> j; return j;
 }
 
-int loadJsonProgram(const string &filename, MainMemory &ram, int startAddr){
+int loadJsonProgram(const string &filename, MemoryManager &memManager, PCB& pcb, int startAddr){
     dataMap.clear();
     labelMap.clear();
 
     json j = readJsonFile(filename);
     int addr = startAddr;
-    if (j.contains("data"))    addr = parseData(j["data"],    ram, addr);
-    if (j.contains("program")) addr = parseProgram(j["program"], ram, addr);
+    if (j.contains("data"))    addr = parseData(j["data"], memManager, pcb, addr);
+    if (j.contains("program")) addr = parseProgram(j["program"], memManager, pcb, addr);
     return addr;
 }
