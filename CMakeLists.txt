@@ -14,18 +14,46 @@ endif()
 # Adiciona o diretório 'src' para que os #includes funcionem
 include_directories(src)
 
-# --- ENCONTRAR TODOS OS ARQUIVOS FONTE ---
-# Isso evita ter que adicionar cada arquivo .cpp manualmente
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+# --- LISTA DE ARQUIVOS FONTE PARA O SIMULADOR PRINCIPAL ---
+set(SIMULATOR_SOURCES
+    src/main.cpp
+    src/cpu/CONTROL_UNIT.cpp
+    src/cpu/pcb_loader.cpp
+    src/cpu/REGISTER_BANK.cpp
+    src/cpu/ULA.cpp
+    src/IO/IOManager.cpp
+    src/memory/cache.cpp
+    src/memory/cachePolicy.cpp
+    src/memory/MAIN_MEMORY.cpp
+    src/memory/MemoryManager.cpp
+    src/memory/SECONDARY_MEMORY.cpp
+    src/parser_json/parser_json.cpp
+)
 
 # --- ALVOS PRINCIPAIS (EXECUTÁVEIS) ---
-add_executable(simulador src/main.cpp)
+add_executable(simulador ${SIMULATOR_SOURCES})
 target_link_libraries(simulador PRIVATE pthread)
 
+# --- ALVOS DE TESTE (CADA UM COM SUAS DEPENDÊNCIAS) ---
 add_executable(test_hash src/test/test_hash_register.cpp)
 add_executable(test_bank src/test/test_register_bank.cpp src/cpu/REGISTER_BANK.cpp)
 add_executable(test_ula src/test/teste_alu.cpp src/cpu/ULA.cpp)
-add_executable(test_metrics src/test/test_cpu_metrics.cpp src/cpu/CONTROL_UNIT.cpp src/cpu/pcb_loader.cpp src/cpu/ULA.cpp src/memory/MAIN_MEMORY.cpp)
+add_executable(test_metrics 
+    src/test/test_cpu_metrics.cpp 
+    src/cpu/CONTROL_UNIT.cpp 
+    src/cpu/pcb_loader.cpp 
+    src/cpu/ULA.cpp 
+    src/memory/MAIN_MEMORY.cpp
+    src/memory/MemoryManager.cpp
+    src/memory/SECONDARY_MEMORY.cpp
+    src/memory/cache.cpp
+    src/memory/cachePolicy.cpp
+    src/cpu/REGISTER_BANK.cpp
+    src/IO/IOManager.cpp
+    src/parser_json/parser_json.cpp
+)
+target_link_libraries(test_metrics PRIVATE pthread)
+
 
 # --- ALVOS PERSONALIZADOS (IMITANDO O MAKEFILE) ---
 
@@ -60,7 +88,7 @@ add_custom_target(check
     VERBATIM
 )
 
-# Comando 'ajuda': Mostra uma mensagem de ajuda útil (renomeado de 'help')
+# Comando 'ajuda': Mostra uma mensagem de ajuda útil
 add_custom_target(ajuda
     COMMAND ${CMAKE_COMMAND} -E echo "📋 SO-SimuladorVonNeumann - Comandos Disponíveis:"
     COMMAND ${CMAKE_COMMAND} -E echo ""
