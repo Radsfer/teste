@@ -48,24 +48,24 @@ void IOManager::addRequest(std::unique_ptr<IORequest> request) {
 
 void IOManager::managerLoop() {
     while (!shutdown_flag) {
-        // ETAPA 1: Simula os dispositivos solicitando uma operação (mudando o estado para 1/true)
+        // ETAPA 1: Simula os dispositivos solicitando uma operação
         {
             std::lock_guard<std::mutex> lock(device_state_lock);
             if (rand() % 100 == 0) {
                 if (!printer_requesting) {
                     printer_requesting = true;
-                    std::cout << "I/O Manager: [Impressora] está solicitando uma operação." << std::endl;
+                    // std::cout << "I/O Manager: [Impressora] está solicitando uma operação." << std::endl;
                 }
             }
             if (rand() % 50 == 0) {
                 if (!disk_requesting) {
                     disk_requesting = true;
-                    std::cout << "I/O Manager: [Disco] está solicitando uma operação." << std::endl;
+                    // std::cout << "I/O Manager: [Disco] está solicitando uma operação." << std::endl;
                 }
             }
         }
 
-        // ETAPA 2: Verifica se há dispositivos solicitando E processos esperando para atendê-los
+        // ETAPA 2: Verifica se há dispositivos solicitando E processos esperando
         std::unique_ptr<IORequest> new_request = nullptr;
         {
             std::lock_guard<std::mutex> wplock(waiting_processes_lock);
@@ -77,18 +77,17 @@ void IOManager::managerLoop() {
                     new_request = std::make_unique<IORequest>();
                     new_request->operation = "print_job";
                     new_request->msg = "Imprimindo documento...";
-                    printer_requesting = false; // Atendido, estado volta para 0
+                    printer_requesting = false;
                 } else if (disk_requesting) {
                     new_request = std::make_unique<IORequest>();
                     new_request->operation = "read_from_disk";
                     new_request->msg = "Lendo dados do disco...";
-                    disk_requesting = false; // Atendido, estado volta para 0
+                    disk_requesting = false;
                 }
                 
                 if (new_request) {
                     new_request->process = process_to_service;
                     waiting_processes.erase(waiting_processes.begin());
-                    // Atribui o custo aleatório de 1 a 3
                     new_request->cost_cycles = std::chrono::milliseconds((rand() % 3 + 1) * 100);
                 }
             }
@@ -98,7 +97,7 @@ void IOManager::managerLoop() {
             addRequest(std::move(new_request));
         }
 
-        // ETAPA 3: Processa a próxima requisição na fila (se houver)
+        // ETAPA 3: Processa a próxima requisição na fila
         std::unique_ptr<IORequest> req_to_process = nullptr;
         {
             std::lock_guard<std::mutex> lock(queueLock);
@@ -114,14 +113,17 @@ void IOManager::managerLoop() {
             auto end = std::chrono::steady_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-            std::cout << "I/O Manager: Processo " << req_to_process->process->id << " executou '" << req_to_process->operation << "'" << std::endl;
+            // CORRIGIDO AQUI: Alterado de 'id' para 'pid'
+            std::cout << "I/O Manager: Processo " << req_to_process->process->pid << " executou '" << req_to_process->operation << "'" << std::endl;
 
-            resultFile << "Processo " << req_to_process->process->id << " -> " << req_to_process->operation << " : " << req_to_process->msg << std::endl;
-            outputFile << req_to_process->process->id << "," << req_to_process->operation << "," << duration << "ms" << std::endl;
+            // CORRIGIDO AQUI: Alterado de 'id' para 'pid'
+            resultFile << "Processo " << req_to_process->process->pid << " -> " << req_to_process->operation << " : " << req_to_process->msg << std::endl;
+            // CORRIGIDO AQUI: Alterado de 'id' para 'pid'
+            outputFile << req_to_process->process->pid << "," << req_to_process->operation << "," << duration << "ms" << std::endl;
 
             req_to_process->process->state = State::Ready;
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20)); // Dorme se não há nada a fazer
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
 }

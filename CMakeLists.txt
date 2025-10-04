@@ -38,17 +38,19 @@ target_link_libraries(simulador PRIVATE pthread)
 add_executable(test_hash src/test/test_hash_register.cpp)
 add_executable(test_bank src/test/test_register_bank.cpp src/cpu/REGISTER_BANK.cpp)
 add_executable(test_ula src/test/teste_alu.cpp src/cpu/ULA.cpp)
+
+# CORREÇÃO: Adicionadas todas as dependências para o teste de métricas
 add_executable(test_metrics 
     src/test/test_cpu_metrics.cpp 
     src/cpu/CONTROL_UNIT.cpp 
     src/cpu/pcb_loader.cpp 
     src/cpu/ULA.cpp 
-    src/memory/MAIN_MEMORY.cpp
+    src/cpu/REGISTER_BANK.cpp
     src/memory/MemoryManager.cpp
+    src/memory/MAIN_MEMORY.cpp
     src/memory/SECONDARY_MEMORY.cpp
     src/memory/cache.cpp
     src/memory/cachePolicy.cpp
-    src/cpu/REGISTER_BANK.cpp
     src/IO/IOManager.cpp
     src/parser_json/parser_json.cpp
 )
