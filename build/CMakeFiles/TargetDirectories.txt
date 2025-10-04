@@ -1,0 +1,11 @@
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/simulador.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/test_hash.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/test_bank.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/test_ula.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/test_metrics.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/run.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/test-all.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/check.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/ajuda.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/edit_cache.dir
+/home/radsfer/Documentos/SO/teste-intrega/build/CMakeFiles/rebuild_cache.dir
