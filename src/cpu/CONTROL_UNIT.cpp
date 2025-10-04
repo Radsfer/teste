@@ -67,7 +67,9 @@ string Control_Unit::Get_source_Register(const uint32_t instruction) {
     return regIndexToBitString(rs);
 }
 
-string Control_Unit::Identificacao_instrucao(uint32_t instruction, hw::BANK &registers) {
+// CORRIGIDO: hw::BANK alterado para hw::REGISTER_BANK
+string Control_Unit::Identificacao_instrucao(uint32_t instruction, hw::REGISTER_BANK &registers) {
+    (void)registers; // Parâmetro não utilizado, evita warning
     uint32_t opcode = (instruction >> 26) & 0x3Fu;
     std::string opcode_bin = toBinStr(opcode, 6);
 
@@ -142,7 +144,8 @@ void Control_Unit::Decode(hw::REGISTER_BANK &registers, Instruction_Data &data) 
     }
 }
 
-void Control_Unit::Execute_Aritmetic_Operation(hw::BANK &registers, Instruction_Data &data) {
+// CORRIGIDO: hw::BANK alterado para hw::REGISTER_BANK
+void Control_Unit::Execute_Aritmetic_Operation(hw::REGISTER_BANK &registers, Instruction_Data &data) {
     string name_rs = this->map.getRegisterName(binaryStringToUint(data.source_register));
     string name_rt = this->map.getRegisterName(binaryStringToUint(data.target_register));
     string name_rd = this->map.getRegisterName(binaryStringToUint(data.destination_register));
@@ -178,7 +181,8 @@ void Control_Unit::Execute_Operation(Instruction_Data &data, ControlContext &con
     }
 }
 
-void Control_Unit::Execute_Loop_Operation(hw::BANK &registers, Instruction_Data &data,
+// CORRIGIDO: hw::BANK alterado para hw::REGISTER_BANK
+void Control_Unit::Execute_Loop_Operation(hw::REGISTER_BANK &registers, Instruction_Data &data,
                                           int &counter, int &counterForEnd, bool &programEnd,
                                           MemoryManager &memManager, PCB &process) {
     string name_rs = this->map.getRegisterName(binaryStringToUint(data.source_register));
@@ -248,8 +252,8 @@ void Control_Unit::Write_Back(Instruction_Data &data, ControlContext &context) {
     }
 }
 
+// A função Core agora espera um ponteiro para o PCB, pois o PCB não é mais copiável
 void* Core(MemoryManager &memoryManager, PCB &process, vector<unique_ptr<IORequest>>* ioRequests, bool &printLock) {
-    auto &registers = process.regBank;
     Control_Unit UC;
     Instruction_Data data;
     int clock = 0;
@@ -258,7 +262,7 @@ void* Core(MemoryManager &memoryManager, PCB &process, vector<unique_ptr<IOReque
     bool endProgram = false;
     bool endExecution = false;
 
-    ControlContext context{ registers, memoryManager, *ioRequests, printLock, process, counter, counterForEnd, endProgram, endExecution };
+    ControlContext context{ process.regBank, memoryManager, *ioRequests, printLock, process, counter, counterForEnd, endProgram, endExecution };
 
     while (context.counterForEnd > 0) {
         if (context.counter >= 4 && context.counterForEnd >= 1) {
@@ -292,7 +296,7 @@ void* Core(MemoryManager &memoryManager, PCB &process, vector<unique_ptr<IOReque
     }
 
     if (context.endProgram) {
-        context.process.state = State::Finished;
+        process.state = State::Finished;
     }
 
     return nullptr;

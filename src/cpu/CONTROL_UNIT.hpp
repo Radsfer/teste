@@ -1,7 +1,7 @@
 #ifndef CONTROL_UNIT_HPP
 #define CONTROL_UNIT_HPP
 
-#include "REGISTER_BANK.hpp"
+#include "REGISTER_BANK.hpp" // Incluído diretamente para ter a definição completa
 #include "ULA.hpp"
 #include "HASH_REGISTER.hpp"
 #include "../memory/cache.hpp"
@@ -16,7 +16,7 @@ using std::vector;
 using std::uint32_t;
 using std::unique_ptr;
 
-class hw::REGISTER_BANK;
+// Forward declarations
 class MemoryManager;
 struct PCB;
 struct IORequest;
@@ -62,6 +62,7 @@ struct Control_Unit {
     static string Get_target_Register(uint32_t instruction);
     static string Get_source_Register(uint32_t instruction);
 
+    // Assinatura corrigida para corresponder à implementação
     string Identificacao_instrucao(uint32_t instruction, hw::REGISTER_BANK &registers);
 
     void Fetch(ControlContext &context);
